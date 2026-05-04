@@ -1,6 +1,7 @@
 const Case = require("../models/Case");
 
-exports.createCase = async (req, res) => {
+// POST - create case
+exports.createCase = async (req, res, next) => {
   try {
     const newCase = new Case(req.body);
 
@@ -11,58 +12,171 @@ exports.createCase = async (req, res) => {
       message: "Case created successfully",
       data: newCase,
     });
-  } catch (error) {
-    console.error(error);
 
-    res.status(500).json({
-      success: false,
-      message: "Error creating case",
-      error: error.message,
-    });
+  } catch (error) {
+    next(error);
   }
 };
 
-exports.getAllCases = async (req, res) => {
+
+// GET - all cases with pagination, filtering, search, and Sorting
+
+exports.getAllCases = async (req, res, next) => {
   try {
-    const cases = await Case.find().sort({ createdAt: -1 });
+    // Pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
+
+    // Filters
+    let filter = {};
+
+    if (req.query.status) {
+      filter.check_status = req.query.status;
+    }
+
+    if (req.query.search) {
+      filter.comp_ref_no = {
+        $regex: req.query.search,
+        $options: "i",
+      };
+    }
+
+    // Sorting & How Sorting will work:-
+      // sort=createdAt   → ascending (old → new)
+     //  sort=-createdAt  → descending (new → old)
+     
+    let sortBy = "-createdAt"; // default (latest first)
+
+    if (req.query.sort) {
+      sortBy = req.query.sort;
+    }
+
+    // Total count
+    const total = await Case.countDocuments(filter);
+
+    // Fetch data
+    const cases = await Case.find(filter)
+      .sort(sortBy)
+      .skip(skip)
+      .limit(limit);
 
     res.status(200).json({
       success: true,
-      count: cases.length,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      sort: sortBy,
       data: cases,
     });
-  } catch (error) {
-    console.error(error);
 
-    res.status(500).json({
-      success: false,
-      message: "Error fetching cases",
-      error: error.message,
-    });
+  } catch (error) {
+    next(error);
   }
 };
-exports.getCaseById = async (req, res) => {
+
+// GET - case by ID
+exports.getCaseById = async (req, res, next) => {
   try {
     const caseData = await Case.findById(req.params.id);
 
     if (!caseData) {
-      return res.status(404).json({
-        success: false,
-        message: "Case not found",
-      });
+      const error = new Error("Case not found");
+      error.statusCode = 404;
+      return next(error);
     }
 
     res.status(200).json({
       success: true,
       data: caseData,
     });
-  } catch (error) {
-    console.error(error);
 
-    res.status(500).json({
-      success: false,
-      message: "Error fetching case",
-      error: error.message,
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+// PUT - update full case
+exports.updateCase = async (req, res, next) => {
+  try {
+    const updatedCase = await Case.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!updatedCase) {
+      const error = new Error("Case not found");
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Case updated successfully",
+      data: updatedCase,
     });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+// DELETE - case by ID
+exports.deleteCase = async (req, res, next) => {
+  try {
+    const deletedCase = await Case.findByIdAndDelete(req.params.id);
+
+    if (!deletedCase) {
+      const error = new Error("Case not found");
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Case deleted successfully",
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+// PATCH - update only status
+exports.updateCaseStatus = async (req, res, next) => {
+  try {
+    const { check_status } = req.body;
+
+    const updatedCase = await Case.findByIdAndUpdate(
+      req.params.id,
+      { check_status },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!updatedCase) {
+      const error = new Error("Case not found");
+      error.statusCode = 404;
+      return next(error);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Status updated successfully",
+      data: updatedCase,
+    });
+
+  } catch (error) {
+    next(error);
   }
 };

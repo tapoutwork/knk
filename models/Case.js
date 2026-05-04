@@ -3,37 +3,24 @@ const mongoose = require("mongoose");
 const caseSchema = new mongoose.Schema(
   {
     comp_ref_no: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-
-    candidate_name: String,
-    father_name: String,
-    candidate_dob: Date,
-
-    street_address: String,
-    city: String,
-    pincode: String,
-    state: String,
-
-    vendor: String,
-    tat: String,
+    type: String,
+    required: [true, "Complaint reference number is required"],
+    unique: true,
+    trim: true,
+    match: [
+      /^REF-\d+$/,
+      "Invalid format. Use REF-001"
+    ]
+  },
 
     check_status: {
       type: String,
-      default: "PENDING",
-    },
-
-    attachment: String,
-    remark: String,
-
-    callback_url: String,
-
-    assigned_to: String,
+      enum: ["PENDING", "IN_PROGRESS", "COMPLETED"],
+      default: "PENDING"
+    }
   },
   {
-    timestamps: true,
+    timestamps: true
   }
 );
 

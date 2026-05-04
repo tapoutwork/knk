@@ -2,6 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const caseRoutes = require("./routes/caseRoutes");
+const errorHandler = require("./middlewares/errorHandler");
+const authRoutes = require("./routes/authRoutes");
 
 const connectDB = require("./config/db");
 
@@ -15,6 +17,10 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/v1", caseRoutes);
+app.use("/api/v1/auth", authRoutes);
+
+/* Error Handling Middleware */
+app.use(errorHandler);
 
 
 /* Test Route */

@@ -55,3 +55,20 @@ exports.loginUser = async (req, res, next) => {
     next(error);
   }
 };
+
+// GET ALL USERS
+exports.getAllUsers = async (req, res, next) => {
+  try {
+
+    const users = await User.find().select("-password");
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      data: users
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};

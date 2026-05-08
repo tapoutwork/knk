@@ -1,29 +1,24 @@
-const Joi = require("joi");
+module.exports = (req, res, next) => {
+  console.log("VALIDATE CASE HIT");
 
-const caseSchema = Joi.object({
-  comp_ref_no: Joi.string()
-    .pattern(/^REF-[0-9]+$/)
-    .required()
-    .messages({
-      "string.empty": "Complaint reference number is required",
-      "any.required": "Complaint reference number is required",
-      "string.pattern.base": "Format must be REF-123"
-    }),
+  const { comp_ref_no } = req.body;
 
-  check_status: Joi.string()
-    .valid("PENDING", "IN_PROGRESS", "COMPLETED")
-    .optional()
-});
-
-const validateCase = (req, res, next) => {
-  const { error } = caseSchema.validate(req.body);
-
-  if (error) {
-    error.statusCode = 400;
-    return next(error);
+  // 1) basic presence
+  if (!comp_ref_no) {
+    return res.status(400).json({
+      success: false,
+      message: "comp_ref_no is required",
+    });
   }
 
-  next();
-};
+  // 2) format
+  if (!/^REF-\d+$/.test(comp_ref_no)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid format. Use REF-001",
+    });
+  }
 
-module.exports = validateCase;
+  // 3) must call next
+  return next();
+};
